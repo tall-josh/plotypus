@@ -3,9 +3,9 @@ import yaml
 from pathlib import Path
 from string import capwords
 
-def make_chart(data_yaml):
-    with open(data_yaml, 'r') as f:
-        data = yaml.load(f,  Loader=yaml.FullLoader)
+def make_chart(data):
+    #with open(data_yaml, 'r') as f:
+    #    data = yaml.load(f,  Loader=yaml.FullLoader)
     assert 'data' in data, 'Must have at least "data" key'
 
     # Default title
