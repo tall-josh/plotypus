@@ -55,4 +55,4 @@ data:
 
 This is a pre-baked example. Using Pygal. 
 
-![poop](poop.svg)
+![example](example.svg)
