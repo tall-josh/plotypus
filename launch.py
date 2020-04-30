@@ -32,7 +32,8 @@ def make_chart(data):
                             y_title = data.get('y_title',''),
                             interpolate = data.get('interpolate', None),
                             human_readable = True,
-
+                            width = data.get('width', 400),
+                            height = data.get('height', 300),
                            )
     x_count = 0
     for run, values in data['data'].items():
