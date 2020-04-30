@@ -55,4 +55,4 @@ data:
 
 This is a pre-baked example. Using Pygal. 
 
-![example](example.svg)
+![train metrics](https://k3l1upy16j.execute-api.ap-southeast-2.amazonaws.com/dev/line-chart/tall-josh/metrics-svg/master/test/train-acc.yaml?)
