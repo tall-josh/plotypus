@@ -1,13 +1,13 @@
 title: Train Accuracy
 x_title: Accuracy
-y_title: Poop
-x_labels: [a,b,c,d,e,f,g]
-y_labels: [a,b,c,d,e,f,g,h,i]
+y_title: Value
+#x_labels: [a,b,c,d,e,f,g]
+#y_labels: [a,b,c,d,e,f,g,h,i]
 
 # Valid values: cubic, quadratic, lagrange, trigonometric, hermite
 # or ommit from yaml
 # See: http://www.pygal.org/en/stable/documentation/configuration/interpolations.html
-#interpolate: lagrange
+interpolate: cubic
 data:
     run-01:
         - 0.1959999918937683
@@ -49,3 +49,11 @@ data:
         - 0.5999999761581421
         - 0.5160000085830688
         - 0.5340000152587891
+    run-06:
+        - 0.6959999918937683
+        - 0.6069999814033508
+        - 0.6539999723434448
+        - 0.6889999985694885
+        - 0.6999999761581421
+        - 0.6160000085830688
+        - 0.6340000152587891
