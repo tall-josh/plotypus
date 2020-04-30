@@ -1,3 +1,4 @@
+chart_type: line
 title: Train Accuracy
 x_title: Accuracy
 y_title: Value
