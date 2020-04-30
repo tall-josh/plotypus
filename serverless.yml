@@ -1,3 +1,4 @@
+org: joshuadpatterson1
 service: serverless-flask
 
 plugins:
@@ -6,10 +7,10 @@ plugins:
 
 custom:
   wsgi:
-    app: launch.app
+    app: serverless-flask-app
     packRequirements: false
-  pythonRequirements:
-    dockerizePip: non-linux
+    pythonRequirements:
+      dockerizePip: non-linux
 
 provider:
   name: aws
