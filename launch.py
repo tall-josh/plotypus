@@ -1,5 +1,5 @@
 from yamgal.make_chart import make_chart
-from flask import Flask, redirect, send_file
+from flask import Flask, redirect, send_file, request
 from io import BytesIO
 import urllib3
 from uuid import uuid4
@@ -46,11 +46,20 @@ def generic_error(message):
 
 @app.route('/<path:text>')
 def hello(text):
+    log.info(f'remote_address: {request.remote_addr}')
+    log.info(f'remote_host: {request.host}')
+    log.info(f'remote_origin: {request.origin}')
     log.info(f'text: {text}')
     if text.startswith(GET_CHART) and text.endswith('.yaml'):
         url = get_url(text)
         log.info(f'downloading: {url}')
         yml = get_yaml(url)
+
+        yml['title'] = "\n".join([yml['title'],
+                                 str(request.host),
+                                 str(request.remote_addr),
+                                 str(request.origin),
+                                  ])
         chart = make_chart(yml)
         image = BytesIO(chart.render())
 
