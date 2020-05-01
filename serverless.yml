@@ -7,7 +7,7 @@ plugins:
 
 custom:
   wsgi:
-    app: serverless-flask-app
+    app: launch.app
     packRequirements: false
     pythonRequirements:
       dockerizePip: non-linux
