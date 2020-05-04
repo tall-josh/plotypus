@@ -5,19 +5,24 @@ import urllib3
 from uuid import uuid4
 from pathlib import Path
 import yaml
+from urllib.parse import urlparse
+from tempfile import mkdtemp
+import subprocess
+
 import logging as log
 
 log.basicConfig(level=log.DEBUG)
 
 app = Flask(__name__)
 
-RAW_GITHUB_PREFIX='https://raw.githubusercontent.com/'
-GET_CHART='get-chart/'
-CHART_TYPE='chart_type'
+YAMGAL='yamgal'
 ERROR_IMAGE='error.png'
 
 EXT='.svg'
 
+def load_yaml(path):
+    with path.open('r') as f:
+        return yaml.load(f, Loader=yaml.FullLoader)
 
 def get_yaml(url):
     http = urllib3.PoolManager()
@@ -25,18 +30,14 @@ def get_yaml(url):
     data = r.read()
     return yaml.load(data, Loader=yaml.FullLoader)
 
-def get_url(text):
-    i = text.index(GET_CHART)
-    loc = text[i+len(GET_CHART):]
-    return f'{RAW_GITHUB_PREFIX}{loc}'
-
 def read_image_as_bytes(path):
     with open(path, 'rb') as f:
         image = f.read()
     return BytesIO(image)
 
 def invalid_chart_type_error(data):
-    message = f'invalid chart type: "{data[chart_type]}"'
+    chart_type = data["chart_type"]
+    message = f'Invalid chart_type: "{chart_type}"'
     log.error(message)
     return read_image_as_bytes('error.png')
 
@@ -44,22 +45,77 @@ def generic_error(message):
     log.error(message)
     return read_image_as_bytes('error.png')
 
+def download_from_public_github(url):
+    '''
+    Args:
+        url (str): github.com/tall-josh/yamgal/blob/master/examples/lines-01.yaml
+
+    Converts to "raw" github url:
+
+        https://raw.githubusercontent.com/tall-josh/yamgal/master/examples/lines-01.yaml
+
+    Downloads file and parses to yaml
+    '''
+    path = Path(urlparse(url).path)
+    log.debug(f'github path : {path}')
+    parts = [p for p in path.parts[1:] if p != "blob"]
+    url = 'http://' + str(Path("raw.githubusercontent.com")\
+                          .joinpath(*[p for p in path.parts[1:] \
+                                  if p != "blob"]))
+    log.debug(f'github url : {url}')
+    yml = get_yaml(url)
+    log.debug(f'github yaml : {yml}')
+    return yml
+
+def shell_command(cmd):
+    result = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
+    return result
+
+def download_from_private_gitlab(url):
+    # gitlab.com/silverpond/research/dvc-jupyter-project-example-demo.git/artefacts/example-metric.yaml
+    TOKEN = "Ru9Fo1Vtey2NtoFjsmM1"
+    USR   = "gitlab+deploy-token-167795"
+    path = Path(urlparse(url).path)
+    log.debug(f'gitlab path: {path}')
+    url_parts = []
+    repo_path = []
+    for p in path.parts:
+        url_parts += [p]
+        if '.git' in p:
+            break
+    repo_url = f'https://{USR}:{TOKEN}@' + '/'.join(url_parts)
+    log.debug(f'gitlab url: {repo_url}')
+    path_in_repo = '/'.join(path.parts[len(url_parts):])
+    log.debug(f'gitlab path_in_repo: {path_in_repo}')
+
+    tmp = mkdtemp()
+    _ = shell_command(['./scripts/sparse_clone.sh',
+                       repo_url,
+                       tmp,
+                       path_in_repo])
+
+    return load_yaml(Path(tmp) / path_in_repo)
+
+loaders = {
+    'github.com': download_from_public_github,
+    'gitlab.com': download_from_private_gitlab,
+}
+
 @app.route('/<path:text>')
 def hello(text):
-    log.info(f'remote_address: {request.remote_addr}')
-    log.info(f'remote_host: {request.host}')
-    log.info(f'remote_origin: {request.origin}')
-    log.info(f'text: {text}')
-    if text.startswith(GET_CHART) and text.endswith('.yaml'):
-        url = get_url(text)
-        log.info(f'downloading: {url}')
-        yml = get_yaml(url)
+    log.debug(f'remote_address: {request.remote_addr}')
+    log.debug(f'remote_host: {request.host}')
+    log.debug(f'remote_origin: {request.origin}')
+    log.debug(f'text: {text}')
 
-        yml['title'] = "\n".join([yml['title'],
-                                 str(request.host),
-                                 str(request.remote_addr),
-                                 str(request.origin),
-                                  ])
+    if text.startswith(YAMGAL) and text.endswith('.yaml'):
+        site_key = text.split('/')[1]
+        log.debug(f'site_key: {site_key}')
+        loader = loaders[site_key]
+
+        url = '/'.join(text.split('/')[1:])
+        yml = loader(url)
+
         chart = make_chart(yml)
         image = BytesIO(chart.render())
 
