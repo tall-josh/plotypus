@@ -1,3 +1,5 @@
+import ipaddress
+import os
 from yamgal.make_chart import make_chart
 from flask import Flask, redirect, send_file, request
 from io import BytesIO
@@ -67,6 +69,11 @@ def download_from_public_github(url):
     log.debug(f'github yaml : {yml}')
     return yml
 
+def local_loader(path):
+    local_path = Path('.').joinpath(*Path(path).parts[1:])
+    data = load_yaml(local_path)
+    return data
+
 def shell_command(cmd):
     result = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode('utf-8').split('\n')
     return result
@@ -96,22 +103,30 @@ def download_from_private_gitlab(url):
 
     return load_yaml(Path(tmp) / path_in_repo)
 
-loaders = {
+def get_loader(site_key):
+    '''ToDo make this switch on ip address
+
+    '''
+    loaders = {
     'github.com': download_from_public_github,
     'gitlab.com': download_from_private_gitlab,
-}
+    'local': local_loader,
+    }
+    return loaders[site_key]
+
 
 @app.route('/<path:text>')
-def hello(text):
+def server(text):
     log.debug(f'remote_address: {request.remote_addr}')
     log.debug(f'remote_host: {request.host}')
     log.debug(f'remote_origin: {request.origin}')
     log.debug(f'text: {text}')
 
-    if text.startswith(YAMGAL) and text.endswith('.yaml'):
+    if text.startswith(YAMGAL) and (
+        text.endswith('.yaml') or text.endswith('.json')):
         site_key = text.split('/')[1]
         log.debug(f'site_key: {site_key}')
-        loader = loaders[site_key]
+        loader = get_loader(site_key)
 
         url = '/'.join(text.split('/')[1:])
         yml = loader(url)
@@ -127,5 +142,5 @@ def hello(text):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, host= '0.0.0.0', port=os.environ.get('PORT', 8080))
 

@@ -4,7 +4,7 @@ URL=$1
 OUTDIR=$2
 FILES="${@:3}"
 
-mkdir $OUTDIR
+mkdir -p $OUTDIR
 cd $OUTDIR
 git init
 git remote add origin $URL

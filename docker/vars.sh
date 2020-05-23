@@ -1,0 +1,7 @@
+IMAGE_NAME='yamlgal-py3-alpine'
+TAG='wip'
+
+CONTAINER_NAME='yamga-test'
+
+PORT_INSIDE=8080
+PORT_OUTSIDE=8080
