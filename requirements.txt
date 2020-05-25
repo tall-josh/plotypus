@@ -1,4 +1,4 @@
-git+https://github.com/tall-josh/yamgal.git@wip
+git+https://github.com/tall-josh/yamgal.git@v0.11
 cairocffi==1.1.0
 CairoSVG==2.4.2
 cffi==1.14.0

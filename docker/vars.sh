@@ -1,5 +1,5 @@
 IMAGE_NAME='yamlgal-py3-alpine'
-TAG='wip'
+TAG='v0.11'
 
 CONTAINER_NAME='yamga-test'
 

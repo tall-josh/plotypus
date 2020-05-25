@@ -80,8 +80,10 @@ def shell_command(cmd):
 
 def download_from_private_gitlab(url):
     # gitlab.com/silverpond/research/dvc-jupyter-project-example-demo.git/artefacts/example-metric.yaml
-    TOKEN = "Ru9Fo1Vtey2NtoFjsmM1"
-    USR   = "gitlab+deploy-token-167795"
+    #TOKEN = "Ru9Fo1Vtey2NtoFjsmM1"
+    #USR   = "gitlab+deploy-token-167795"
+    TOKEN = "CUDRdAcZwEaYa_xAH5zC"
+    USR = "deep-josh"
     path = Path(urlparse(url).path)
     log.debug(f'gitlab path: {path}')
     url_parts = []
@@ -122,23 +124,53 @@ def server(text):
     log.debug(f'remote_origin: {request.origin}')
     log.debug(f'text: {text}')
 
-    if text.startswith(YAMGAL) and (
-        text.endswith('.yaml') or text.endswith('.json')):
-        site_key = text.split('/')[1]
-        log.debug(f'site_key: {site_key}')
-        loader = get_loader(site_key)
+    def make_valid_yaml(d):
+        # remove '{' and trailing '}'
+        d = d[1:-1]
 
-        url = '/'.join(text.split('/')[1:])
-        yml = loader(url)
+        # make vaid yaml
+        d = d.replace(';','\n').replace(':', ': ')
+        return d
 
-        chart = make_chart(yml)
+    parts = text.split('/')
+
+    try:
+        chart_type = parts[0]
+
+        # Remove "data="
+        data_dict_str = parts[1][5:]
+        log.debug(f'data_dict_str: {data_dict_str}')
+        data = make_valid_yaml(data_dict_str)
+        log.debug(f'data111: {data}')
+        data = yaml.load(data, Loader=yaml.FullLoader)
+        log.debug(f'data: {data}')
+
+        if len(parts) == 3:
+            # Remove 'config='
+            chart_config_str = parts[2][7:]
+            chart_config = make_valid_yaml(chart_config_str)
+            chart_config = yaml.load(chart_config, Loader=yaml.FullLoader)
+        else:
+            chart_config = {}
+
+        log.debug(f'chart_config: {chart_config}')
+        chart_dict = {"chart_type": chart_type,
+                      "data": data,
+                      "chart_config": chart_config}
+
+        log.debug(f'chart_dict: {chart_dict}')
+
+        chart = make_chart(chart_dict)
         image = BytesIO(chart.render())
 
         filename = f'{Path(text).name}_{str(uuid4())}{EXT}'
-        return send_file(image, attachment_filename=filename)
+    except Exception as e:
+        log.debug(e)
+        image = read_image_as_bytes('error.png')
+        filename = 'error'
 
-    message = f'Invalid url error: "{text}"'
-    return send_file(generic_error(message), attachment_filename='error.png')
+    return send_file(image, attachment_filename=filename)
+
 
 
 if __name__ == '__main__':
