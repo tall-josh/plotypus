@@ -76,6 +76,7 @@ def server(text):
     if text == 'help':
         return redirect('https://colab.research.google.com/notebooks/intro.ipynb', code=302)
 
+    parts = text.split('/')
     try:
         chart_type = get_chart_type_from_parts(parts)
         chart_data = get_chart_data_from_string(parts)
