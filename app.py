@@ -74,7 +74,7 @@ def server(text):
     log.debug(f'text: {text}')
 
     if text == 'help':
-        return redirect('https://colab.research.google.com/notebooks/intro.ipynb', code=302)
+        return redirect('https://colab.research.google.com/github/tall-josh/yamgal/blob/master/notebooks/Yamgal_Demo_Notebook.ipynb', code=302)
 
     parts = text.split('/')
     try:
