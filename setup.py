@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 long_desc="fdsfds"
 
 setup(name='metsvg',
-    version='0.1',
+    version='0.3',
     author='Joshua Patterson',
     author_email='joshua.d.patterson@gmail.com',
     description='A tool I want',
