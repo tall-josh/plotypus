@@ -12,13 +12,28 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_LOGIN: ${{ secrets.docker_login }}
+      HOSTNAME: asia.gcr.io
+      IMAGE: yamlgal-py3-alpine
+      TAG: latest
+      GCP_PROJECT: yamgal
     steps:
       - name: Checkout
         uses: actions/checkout@v2.2.0
-      - name: list
-        run: ls
       - name: Docker Build
         run: ./docker/build.sh
+      - name: Docker Tag
+        run: docker build -f docker/Dockerfile -t ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG} .
+      - name: Docker Login
+        run: |
+          echo "$DOCKER_LOGIN" | docker login -u _json_key --password-stdin https://${HOSTNAME}
+      - name: Docker Push
+        run: docker push ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG}
+      - name: Deploy
+        run: gcloud run deploy --image ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG}
+
+
   test:
     runs-on: ubuntu-latest
     steps:
