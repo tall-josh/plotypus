@@ -4,7 +4,32 @@ from setuptools import setup, find_packages
 #    long_desc='\n'.join(f.readlines())
 long_desc="fdsfds"
 
-setup(name='metsvg',
+install_requires = [
+    'cairocffi==1.1.0',
+    'CairoSVG==2.4.2',
+    'cffi==1.14.0',
+    'click==7.1.2',
+    'cssselect==1.1.0',
+    'cssselect2==0.3.0',
+    'defusedxml==0.6.0',
+    'Flask==1.1.2',
+    'itsdangerous==1.1.0',
+    'Jinja2==2.11.2',
+    'lxml==4.5.0',
+    'MarkupSafe==1.1.1',
+    'Pillow==7.1.2',
+    'pycparser==2.20',
+    'pygal==2.4.0',
+    'PyYAML==5.3.1',
+    'tinycss==0.4',
+    'tinycss2==1.0.2',
+    'urllib3==1.25.9',
+    'webencodings==0.5.1',
+    'Werkzeug==1.0.1',
+    'gunicorn==20.0.4',
+]
+
+setup(name='yamgal',
     version='0.3',
     author='Joshua Patterson',
     author_email='joshua.d.patterson@gmail.com',
@@ -12,11 +37,6 @@ setup(name='metsvg',
     long_description=long_desc,
     python_requires='>=3.6',
     packages=find_packages(),
-    #entry_points={
-    #  'console_scripts' : [
-    #      'beerme=beerbot.main:main',
-    #  ]
-    #},
-    #include_package_data=True
+    install_requires=install_requires,
 )
 

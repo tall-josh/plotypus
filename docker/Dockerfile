@@ -1,9 +1,8 @@
 FROM python:3.7-buster
 
 WORKDIR /opt/code
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
+COPY setup.py yamgal app.py ./
+RUN pip install -e .
 
 ENV PORT 8080
 
