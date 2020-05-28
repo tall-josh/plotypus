@@ -1,8 +1,8 @@
 # Usage
 
 ```
-pip install -r requirements.txt
-python launch.py
+./docker/build.sh
+./docker/run.sh
 ```
 
 # Markdown
