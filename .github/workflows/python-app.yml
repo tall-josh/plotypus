@@ -31,7 +31,7 @@ jobs:
       - name: Docker Push
         run: docker push ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG}
       - name: Deploy
-        run: gcloud run deploy --image ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG}
+        run: gcloud run deploy --image ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG} --region asia-east1 --platform=managed yamlgal-py3-alpine
 
 
   test:
