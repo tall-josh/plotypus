@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2.2.0
+      - name: list
+        run: ls
       - name: Docker Build
         run: ./docker/build.sh
   test:
