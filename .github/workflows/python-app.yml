@@ -1,41 +1,58 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+# Copyright 2019 Google, LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-name: Yamgal Server
+name: Build and Deploy to Cloud Run
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches:
+    - master
+
+env:
+  PROJECT_ID: ${{ secrets.RUN_PROJECT }}
+  RUN_REGION: us-central1
+  SERVICE_NAME: yamgal-server
 
 jobs:
-  build:
+  setup-build-deploy:
+    name: Setup, Build, and Deploy
     runs-on: ubuntu-latest
-    env:
-      DOCKER_LOGIN: ${{ secrets.docker_login }}
-      HOSTNAME: asia.gcr.io
-      IMAGE: yamlgal-py3-alpine
-      TAG: latest
-      GCP_PROJECT: yamgal
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2.2.0
-      - name: Docker Build
-        run: ./docker/build.sh
-      - name: Docker Tag
-        run: docker build -f docker/Dockerfile -t ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG} .
-      - name: Docker Login
-        run: |
-          echo "$DOCKER_LOGIN" | docker login -u _json_key --password-stdin https://${HOSTNAME}
-      - name: Docker Push
-        run: docker push ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG}
-      - name: Deploy
-        run: gcloud run deploy --image ${HOSTNAME}/${GCP_PROJECT}/${IMAGE}:${TAG} --region asia-east1 --platform=managed --project ${GCP_PROJECT} yamlgal-py3-alpine
 
-
-  test:
-    runs-on: ubuntu-latest
     steps:
-      - name: test1
-        run: echo "testing testing 123"
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    # Setup gcloud CLI
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '290.0.1'
+        service_account_key: ${{ secrets.RUN_SA_KEY }}
+        project_id: ${{ secrets.RUN_PROJECT }}
+
+    # Build and push image to Google Container Registry
+    - name: Build
+      run: |-
+        gcloud builds submit \
+          --quiet \
+          --tag "gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA"
+
+    # Deploy image to Cloud Run
+    - name: Deploy
+      run: |-
+        gcloud run deploy "$SERVICE_NAME" \
+          --quiet \
+          --region "$RUN_REGION" \
+          --image "gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA" \
+          --platform "managed" \
+          --allow-unauthenticated
