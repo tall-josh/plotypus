@@ -22,7 +22,7 @@ on:
 env:
   PROJECT_ID: ${{ secrets.RUN_PROJECT }}
   RUN_REGION: us-central1
-  SERVICE_NAME: yamgal-py3-alpine
+  SERVICE_NAME: yamgal-server
 
 jobs:
   setup-build-deploy:
