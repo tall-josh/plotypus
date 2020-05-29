@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source docker/vars.sh
+source vars.sh
 
 docker run -it \
     --rm \
