@@ -21,7 +21,7 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.RUN_PROJECT }}
-  RUN_REGION: us-central1
+  RUN_REGION: asia-east1
   SERVICE_NAME: yamgal-server
 
 jobs:
