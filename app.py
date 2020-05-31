@@ -1,6 +1,7 @@
 import os
 from yamgal.make_chart import make_chart
-from flask import Flask, redirect, send_file, request
+from flask import Flask, redirect, send_file, request, make_response
+from werkzeug.datastructures import Headers
 from io import BytesIO
 from uuid import uuid4
 from pathlib import Path
@@ -110,8 +111,43 @@ def server(text):
         image = read_image_as_bytes('error.png')
         filename = 'error'
 
-    return send_file(image, attachment_filename=filename)
+    response = make_response(send_file(image, attachment_filename=filename))
+
+    chart_title = "josh hosh"
+    git_url = "https://github.com/tall-josh/graphite"
+    chart_url = "https://yamgal-server-c6l3dwv2sq-de.a.run.app/pie/one:0.1;two:0.2;three:0.3;four:0.4/style:neon;title:Pie_Chart"
+    #headers = Headers()
+    #headers.add('meta', 'property="og:type" content="website"'.encode('utf-8'))
+    #headers.add('meta', f'property="og:url" content="{git_url}"'.encode('utf-8'))
+    #headers.add('meta', f'property="og:title" content="{chart_title}"'.encode('utf-8'))
+    #headers.add('meta', 'property="og:description" content="Powered by Josh"'.encode('utf-8'))
+    #headers.add('meta', f'property="og:image" content="{chart_url}"'.encode('utf-8'))
+
+    #headers.add('meta', 'name="twitter:card" content="summary_large_imag'.encode('utf-8'))
+    #headers.add('meta', 'name="twitter:domain" value="ruraljuror.com"'.encode('utf-8'))
+    #headers.add('meta', f'name="twitter:title" value="{chart_title}"'.encode('utf-8'))
+    #headers.add('meta', 'name="twitter:description" value="Powered by Josh"'.encode('utf-8'))
+    #headers.add('meta', f'name="twitter:image" content="{chart_url}"'.encode('utf-8'))
+    #headers.add('meta', f'name="twitter:url" value="{git_url}"'.encode('utf-8'))
+    #response.headers = headers
+
+    headers = (
+        'property="og:type" content="website", '
+        f'property="og:url" content="{git_url}", '
+        f'property="og:title" content="{chart_title}", '
+        'property="og:description" content="Powered by Josh", '
+        f'property="og:image" content="{chart_url}", '
+
+        'name="twitter:card" content="summary_large_imag, '
+        'name="twitter:domain" value="ruraljuror.com", '
+        f'name="twitter:title" value="{chart_title}", '
+        'name="twitter:description" value="Powered by Josh", '
+        f'name="twitter:image" content="{chart_url}", '
+        f'name="twitter:url" value="{git_url}"')
+    print(f'headers: {headers}')
+    response.headers['meta'] = headers.encode('utf-8')
+    log.debug(response)
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, host= '0.0.0.0', port=os.environ.get('PORT', 8080))
-
