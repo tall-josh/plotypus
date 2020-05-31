@@ -78,8 +78,7 @@ def server(text):
     if text == 'help':
         return redirect('https://colab.research.google.com/github/tall-josh/graphite/blob/master/notebooks/Yamgal_Demo_Notebook.ipynb', code=302)
     if text == 'favicon.ico':
-        image = read_image_as_bytes('error.png')
-        return send_file(image, attachment_filename='Bailey.jpg')
+        return redirect('https://raw.githubusercontent.com/tall-josh/graphite/master/Bailey.jpg')
 
     parts = text.split('/')
     try:
