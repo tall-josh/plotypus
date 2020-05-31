@@ -67,6 +67,7 @@ def remove_underscore(config, to_remove_underscore):
             config[key] = val
     return config
 
+# https://yamgal-server-c6l3dwv2sq-de.a.run.app/favicon.ico
 @app.route('/<path:text>')
 def server(text):
     log.debug(f'remote_address: {request.remote_addr}')
@@ -76,6 +77,9 @@ def server(text):
 
     if text == 'help':
         return redirect('https://colab.research.google.com/github/tall-josh/graphite/blob/master/notebooks/Yamgal_Demo_Notebook.ipynb', code=302)
+    if text == 'favicon.ico':
+        image = read_image_as_bytes('error.png')
+        return send_file(image, attachment_filename='Bailey.jpg')
 
     parts = text.split('/')
     try:
@@ -116,20 +120,7 @@ def server(text):
     chart_title = "josh hosh"
     git_url = "https://github.com/tall-josh/graphite"
     chart_url = "https://yamgal-server-c6l3dwv2sq-de.a.run.app/pie/one:0.1;two:0.2;three:0.3;four:0.4/style:neon;title:Pie_Chart"
-    #headers = Headers()
-    #headers.add('meta', 'property="og:type" content="website"'.encode('utf-8'))
-    #headers.add('meta', f'property="og:url" content="{git_url}"'.encode('utf-8'))
-    #headers.add('meta', f'property="og:title" content="{chart_title}"'.encode('utf-8'))
-    #headers.add('meta', 'property="og:description" content="Powered by Josh"'.encode('utf-8'))
-    #headers.add('meta', f'property="og:image" content="{chart_url}"'.encode('utf-8'))
-
-    #headers.add('meta', 'name="twitter:card" content="summary_large_imag'.encode('utf-8'))
-    #headers.add('meta', 'name="twitter:domain" value="ruraljuror.com"'.encode('utf-8'))
-    #headers.add('meta', f'name="twitter:title" value="{chart_title}"'.encode('utf-8'))
-    #headers.add('meta', 'name="twitter:description" value="Powered by Josh"'.encode('utf-8'))
-    #headers.add('meta', f'name="twitter:image" content="{chart_url}"'.encode('utf-8'))
-    #headers.add('meta', f'name="twitter:url" value="{git_url}"'.encode('utf-8'))
-    #response.headers = headers
+    chart_url = "https://pbs.twimg.com/profile_images/654244539159420928/rgbZ5vnR_400x400.jpg"
 
     headers = (
         'property="og:type" content="website", '
