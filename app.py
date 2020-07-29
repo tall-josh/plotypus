@@ -5,7 +5,7 @@ from werkzeug.datastructures import Headers
 from io import BytesIO
 from uuid import uuid4
 from pathlib import Path
-import yaml
+import ruamel.yaml as yaml
 from urllib.parse import urlparse
 import subprocess
 
@@ -41,7 +41,8 @@ def get_chart_data_from_string(parts):
     log.debug(f'data_str: {data_str}')
     data_yaml = make_valid_yaml(data_str)
 
-    chart_data = yaml.load(data_yaml, Loader=yaml.FullLoader)
+    chart_data = yaml.round_trip_load(data_yaml)
+    #chart_data = yaml.load(data_yaml, Loader=yaml.SafeLoader)
     log.debug(f'chart_data: {chart_data}')
     return chart_data
 
@@ -49,7 +50,8 @@ def get_chart_config_from_parts(parts):
    if len(parts) == 3:
        chart_config_str = parts[2]
        chart_config_yaml = make_valid_yaml(chart_config_str)
-       chart_config = yaml.load(chart_config_yaml, Loader=yaml.FullLoader)
+       chart_config = yaml.round_trip_load(chart_config_yaml)
+       #chart_config = yaml.load(chart_config_yaml, Loader=yaml.SafeLoader)
    else:
        chart_config = {}
    log.debug(f'chart_config: {chart_config}')
@@ -82,6 +84,7 @@ def server(text):
 
     parts = text.split('/')
     try:
+        print(f'parts: {parts}')
         chart_type = get_chart_type_from_parts(parts)
         chart_data = get_chart_data_from_string(parts)
         chart_config = get_chart_config_from_parts(parts)

@@ -27,6 +27,7 @@ install_requires = [
     'webencodings==0.5.1',
     'Werkzeug==1.0.1',
     'gunicorn==20.0.4',
+    'ruamel.yaml==0.16.10',
 ]
 
 setup(name='yamgal',
