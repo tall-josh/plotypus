@@ -1,5 +1,4 @@
 import pygal
-import yaml
 
 CHART_FROM_NAME_STR = {
     "line" : pygal.Line,
@@ -9,7 +8,8 @@ CHART_FROM_NAME_STR = {
     "horizontalbar": pygal.HorizontalBar,
     "pie": pygal.Pie,
     "histogram": pygal.Histogram,
-    "xy": pygal.XY
+    "xy": pygal.XY,
+    "dot": pygal.Dot,
 }
 
 STYLE_FROM_NAME_STR = {
