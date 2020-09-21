@@ -30,7 +30,7 @@ install_requires = [
     'ruamel.yaml==0.16.10',
 ]
 
-setup(name='yamgal',
+setup(name='chartist',
     version='0.3',
     author='Joshua Patterson',
     author_email='joshua.d.patterson@gmail.com',

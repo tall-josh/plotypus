@@ -53,14 +53,12 @@ def add_data_to_chart(chart, data):
     for k, v in data.items():
         chart.add(k, v)
     return chart
+chart = chart_constructor(**chart_dict['chart_config'])
 
 def make_chart(chart_dict):
-
     validate_chart_dict(chart_dict)
-
     chart_dict['chart_config']['style'] = get_chart_style(chart_dict)
     chart_constructor = get_chart_constructor(chart_dict)
     chart = chart_constructor(**chart_dict['chart_config'])
     chart = add_data_to_chart(chart, chart_dict['data'])
-
     return chart

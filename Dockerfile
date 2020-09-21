@@ -2,7 +2,7 @@ FROM python:3.7-buster
 
 WORKDIR /opt/code
 COPY setup.py app.py ./
-COPY yamgal ./yamgal
+COPY chartist ./chartist
 RUN pip install -e .
 
 ENV PORT 8080
