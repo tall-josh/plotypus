@@ -24,9 +24,6 @@ def read_image_as_bytes(path):
 # https://yamgal-server-c6l3dwv2sq-de.a.run.app/favicon.ico
 @app.route('/<path:text>')
 def server(text):
-    log.info(f'remote_address: {request.remote_addr}')
-    log.info(f'remote_host: {request.host}')
-    log.info(f'remote_origin: {request.origin}')
     log.info(f'text: {text}')
 
     if text == 'help':
@@ -35,7 +32,9 @@ def server(text):
         return redirect('https://raw.githubusercontent.com/tall-josh/graphite/master/Bailey.jpg')
 
     try:
-        url = f'https://{request.host}/{text}'
+        http_or_https = request.url.split(':')[0]
+        url = f'{http_or_https}://{request.host}/{text}'
+        log.info(f'url: {url}')
         chart = Chartist.from_url(url)
         log.info(f'chart: {chart}')
         svg = chart.to_svg()

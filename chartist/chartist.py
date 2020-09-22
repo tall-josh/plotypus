@@ -1,4 +1,5 @@
 import pygal
+from time import time
 from pygal.graph.graph import Graph
 from typing import List, Dict, Any, Optional
 import ruamel.yaml as yaml
@@ -198,7 +199,6 @@ def get_idx(l, pattern):
     except ValueError:
         return None
 
-
 class Chartist:
 
     def __init__(
@@ -207,11 +207,20 @@ class Chartist:
         data: Dict[str, List[Any]],
         config: Dict[str, List[Any]],
         endpoint: Optional[str] = 'http://localhost:8080',
+        precision: Optional[int] = 2
     ):
         self.chart_type = chart_type
         self.data = data
         self.config = config
+        style = self.config.get('style', 'default').lower()
+        self.update_style(style)
+
         self.endpoint = endpoint
+        self.precision = precision
+
+    def update_style(self, style: str):
+        _style = STYLE_FROM_NAME_STR[style]
+        self.config['style'] = _style
 
     def add_ranges(self, new_ranges: Dict[str, Any]):
         for k, v in new_ranges.items():
@@ -257,16 +266,31 @@ class Chartist:
         return cls.from_url(chartist_url)
 
 
-    def to_url(self, precision: Optional[int]=2):
-        data_str = make_data_str(self.chart_type, self.data, prec=precision)
+    def to_url(self):
+        data_str = make_data_str(self.chart_type, self.data, prec=self.precision)
         style_str = dict_to_style_str(self.config)
         url = '/'.join([self.endpoint, self.chart_type, data_str, style_str])
         return url
 
+    def to_html_tag(self, alt_text: str, height: Optional[int]=None, width: Optional[int]=None) -> str:
+        url = self.to_url()
+        parts = [f'<img src="{url}" alt="{alt_text}"']
+        if height is not None:
+            parts += [f'height="{height}"']
+
+        if width is not None:
+            parts += [f'width="{width}"']
+
+        parts += '>'
+        return ' '.join(parts)
+
+    def to_markdown_tag(self, alt_text: str) -> str:
+        url = self.to_url()
+        return f'![{alt_text}]({url})'
+
     def insert_into_text(self,
                          text: str,
-                         alt_text: str,
-                         precision: Optional[int]=2):
+                         alt_text: str):
         """Inserts Chartist url into text
 
         Finds the Markdown or HTML image tag in the 'text'
@@ -279,7 +303,7 @@ class Chartist:
         are defined are not important. height and width are optional.
         Other attributes are also ok.
         """
-        url = self.to_url(precision=precision)
+        url = self.to_url()
         token = f'![{alt_text}]'
         tag_start = get_idx(text, token)
         if tag_start is not None:
