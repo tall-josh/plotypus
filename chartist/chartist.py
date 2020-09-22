@@ -199,6 +199,12 @@ def get_idx(l, pattern):
     except ValueError:
         return None
 
+def remove_query_string(url):
+    q_idx = get_idx(url, '?')
+    if q_idx is not None:
+        url = url[:q_idx]
+    return url
+
 class Chartist:
 
     def __init__(
@@ -212,15 +218,9 @@ class Chartist:
         self.chart_type = chart_type
         self.data = data
         self.config = config
-        style = self.config.get('style', 'default').lower()
-        self.update_style(style)
 
         self.endpoint = endpoint
         self.precision = precision
-
-    def update_style(self, style: str):
-        _style = STYLE_FROM_NAME_STR[style]
-        self.config['style'] = _style
 
     def add_ranges(self, new_ranges: Dict[str, Any]):
         for k, v in new_ranges.items():
@@ -236,6 +236,8 @@ class Chartist:
         """
         if url.endswith('/'):
             url = url[:-1]
+
+        url = remove_query_string(url)
 
         parts = url.split('/')
         print(parts)
@@ -266,14 +268,22 @@ class Chartist:
         return cls.from_url(chartist_url)
 
 
-    def to_url(self):
+    def to_url(self, rand_query_str: Optional[bool]=False):
         data_str = make_data_str(self.chart_type, self.data, prec=self.precision)
         style_str = dict_to_style_str(self.config)
-        url = '/'.join([self.endpoint, self.chart_type, data_str, style_str])
+        parts = [self.endpoint, self.chart_type, data_str, style_str]
+
+        if rand_query_str:
+            s = parts[-1]
+            parts[-1] = f"{s}?{int(time())}"
+
+        url = '/'.join(parts)
+
+
         return url
 
     def to_html_tag(self, alt_text: str, height: Optional[int]=None, width: Optional[int]=None) -> str:
-        url = self.to_url()
+        url = self.to_url(rand_query_str=True)
         parts = [f'<img src="{url}" alt="{alt_text}"']
         if height is not None:
             parts += [f'height="{height}"']
@@ -285,7 +295,7 @@ class Chartist:
         return ' '.join(parts)
 
     def to_markdown_tag(self, alt_text: str) -> str:
-        url = self.to_url()
+        url = self.to_url(rand_query_str=True)
         return f'![{alt_text}]({url})'
 
     def insert_into_text(self,
@@ -303,7 +313,7 @@ class Chartist:
         are defined are not important. height and width are optional.
         Other attributes are also ok.
         """
-        url = self.to_url()
+        url = self.to_url(rand_query_str=True)
         token = f'![{alt_text}]'
         tag_start = get_idx(text, token)
         if tag_start is not None:
@@ -323,8 +333,12 @@ class Chartist:
 
 
     def to_svg(self):
-        _chart_cls = CHART_FROM_NAME_STR[self.chart_type.lower()]
-        chart = _chart_cls(**self.config)
+        cfg = self.config.copy()
+        style_str = cfg.get('style', 'default').lower()
+        cfg['style'] = STYLE_FROM_NAME_STR[style_str]
+
+        chart_constructor = CHART_FROM_NAME_STR[self.chart_type.lower()]
+        chart = chart_constructor(**cfg)
         for k,v in self.data.items():
             chart.add(k, v)
         return chart
