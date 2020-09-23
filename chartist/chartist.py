@@ -58,7 +58,6 @@ def get_chart_config_from_parts(parts):
        chart_config_str = parts[2]
        chart_config_yaml = make_valid_yaml(chart_config_str)
        chart_config = yaml.round_trip_load(chart_config_yaml)
-       #chart_config = yaml.load(chart_config_yaml, Loader=yaml.SafeLoader)
    else:
        chart_config = {}
    return chart_config
@@ -85,20 +84,6 @@ def remove_underscore(config):
     return config
 
 
-#def chart_dict_from_chartist_url(text):
-#    if text.endswith('/'):
-#        text = text[:-1]
-#
-#    parts = text.split('/')[3:]
-#    chart_type = get_chart_type_from_parts(parts)
-#    chart_data = get_chart_data_from_parts(parts)
-#    chart_config = get_chart_config_from_parts(parts)
-#
-#    chart_config = remove_underscore(chart_config)
-#
-#    return {"chart_type": chart_type,
-#                  "data": chart_data,
-#                  "chart_config": chart_config}
 def clip_if_float(x, prec):
     """Converts numbers to string
     To save on chars:
@@ -211,7 +196,7 @@ class Chartist:
         self,
         chart_type: str,
         data: Dict[str, List[Any]],
-        config: Dict[str, List[Any]],
+        config: Optional[Dict[str, List[Any]]]={},
         endpoint: Optional[str] = 'http://localhost:8080',
         precision: Optional[int] = 2
     ):
@@ -221,6 +206,11 @@ class Chartist:
 
         self.endpoint = endpoint
         self.precision = precision
+
+        # If True, will append a random query string
+        # to the end of urls so the browser is forced
+        # to reload the image rather than use the cache.
+        self._debug = False
 
     def add_ranges(self, new_ranges: Dict[str, Any]):
         for k, v in new_ranges.items():
@@ -268,12 +258,12 @@ class Chartist:
         return cls.from_url(chartist_url)
 
 
-    def to_url(self, rand_query_str: Optional[bool]=False):
+    def to_url(self):
         data_str = make_data_str(self.chart_type, self.data, prec=self.precision)
         style_str = dict_to_style_str(self.config)
         parts = [self.endpoint, self.chart_type, data_str, style_str]
 
-        if rand_query_str:
+        if self._debug:
             s = parts[-1]
             parts[-1] = f"{s}?{int(time())}"
 
@@ -283,7 +273,7 @@ class Chartist:
         return url
 
     def to_html_tag(self, alt_text: str, height: Optional[int]=None, width: Optional[int]=None) -> str:
-        url = self.to_url(rand_query_str=True)
+        url = self.to_url()
         parts = [f'<img src="{url}" alt="{alt_text}"']
         if height is not None:
             parts += [f'height="{height}"']
@@ -295,7 +285,7 @@ class Chartist:
         return ' '.join(parts)
 
     def to_markdown_tag(self, alt_text: str) -> str:
-        url = self.to_url(rand_query_str=True)
+        url = self.to_url()
         return f'![{alt_text}]({url})'
 
     def insert_into_text(self,
@@ -313,7 +303,7 @@ class Chartist:
         are defined are not important. height and width are optional.
         Other attributes are also ok.
         """
-        url = self.to_url(rand_query_str=True)
+        url = self.to_url()
         token = f'![{alt_text}]'
         tag_start = get_idx(text, token)
         if tag_start is not None:
