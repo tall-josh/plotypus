@@ -4,6 +4,30 @@ from pathlib import Path
 
 from chartist import Chartist
 
+def load_module_fn(path):
+    pass
+
+def get_transform_function(transform_function):
+    if transform_function is None:
+        def fn(data_path):
+            with Path(data_path).open('r') as f:
+                data = yaml.round_trip_load(f)
+            return data
+    else:
+        fn = load_module_fn(transform_function)
+
+def get_config(config_path):
+    if config_path is None:
+        config = {}
+    else:
+        with Path(config_path).open('r') as f:
+            config = yaml.round_trip_load(f)
+
+@click.group()
+def entrypoint():
+    pass
+
+
 @click.command("insert-chart", help=(
 "Insert Chartist url into a text document.\n\n"
 "Will read document and look for HTML or Markdown "
@@ -48,21 +72,9 @@ def _insert_chart(file_path,
                   config_path,
                   endpoint,
                   transform_function):
-    if transform_function is None:
-        def fn(data_path):
-            with Path(data_path).open('r') as f:
-                data = yaml.round_trip_load(f)
-            return data
-    else:
-        fn = load_transform(transform_function)
-
+    fn = get_transform_function(transform_function)
     data = fn(data_path)
-
-    if config_path is None:
-        config = {}
-    else:
-        with Path(config_path).open('r') as f:
-            config = yaml.round_trip_load(f)
+    config = get_config(config_path)
 
     chart = Chartist(
         chart_type,
@@ -78,8 +90,41 @@ def _insert_chart(file_path,
     with Path(file_path).open('w') as f:
         f.write(new_text)
 
+@click.command("add-ranges")
 def _add_ranges():
-    pass
+    fn = get_transform_function(transform_function)
+    data = fn(data_path)
 
+    with Path(file_path).open('r') as f:
+        text = f.read()
+
+    chart = Chartist.from_text(text, alt_text)
+
+
+    chart.add_ranges(data)
+    new_text = chart.insert_into_text(text, alt_text)
+    with Path(file_path).open('w') as f:
+        f.write(new_text)
+
+@click.command("append-to-ranges")
 def _append_to_ranges():
-    pass
+    fn = get_transform_function(transform_function)
+    data = fn(data_path)
+
+    with Path(file_path).open('r') as f:
+        text = f.read()
+
+    chart = Chartist.from_text(text, alt_text)
+
+    chart.append_to_ranges(data)
+
+    new_text = chart.insert_into_text(text, alt_text)
+    with Path(file_path).open('w') as f:
+        f.write(new_text)
+
+entrypoint.add_command(_insert_chart)
+entrypoint.add_command(_add_ranges)
+entrypoint.add_command(_append_to_ranges)
+
+if __name__ == "__main__":
+    entrypoint()
