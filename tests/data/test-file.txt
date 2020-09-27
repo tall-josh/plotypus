@@ -1,0 +1,3 @@
+<img src="http://localhost:8080 alt="test_line" height="600" width="600" >
+<img src="http://localhost:8080 alt="test_pie" height="600" width="600" >
+<img src="http://localhost:8080 alt="test_xy" height="600" width="600" >

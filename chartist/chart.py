@@ -124,9 +124,9 @@ def _1d_data_to_str(data, prec):
         s += [f'{k}:{v_str}']
     return ';'.join(s)
 
-def _2d_data_to_str(data, prec=2):
+def _nd_data_to_str(data, prec=2):
     """
-    data: {"rangeA": [[x1,x2,x3],[y1,y2,y3]],
+    data: {"rangeA": [[x1,y1,z1],[x2,y,z2],...],
            "rangeB": ...}
     """
     s = []
@@ -135,14 +135,22 @@ def _2d_data_to_str(data, prec=2):
         s += [f'{k}:{v_str}']
     return ';'.join(s)
 
-_data_to_string_converters = {
-    "xy": _2d_data_to_str,
-    "line": _1d_data_to_str,
-    "dot": _1d_data_to_str,
-}
+
+def _get_data_converter(data):
+    for _,v in data.items():
+        _data = v[0]
+        break
+
+    if isinstance(_data, list) or isinstance(_data, tuple):
+        converter = _nd_data_to_str
+    else:
+        converter = _1d_data_to_str
+    return converter
+
 
 def make_data_str(chart_type, data, prec=2):
-    return _data_to_string_converters[chart_type](data, prec=prec)
+    converter = _get_data_converter(data)
+    return converter(data, prec=prec)
 
 
 def get_chartist_url_from_text(text, idx, start_token, end_token):
