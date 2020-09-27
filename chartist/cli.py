@@ -110,7 +110,7 @@ def _insert_chart(file_path,
         with Path(file_path).open('w') as f:
             f.write(new_text)
     else:
-        print(new_text, end='')
+        print(new_text, end="")
 
 @click.command("add-ranges")
 @click.option("-f", "--file-path", type=str,

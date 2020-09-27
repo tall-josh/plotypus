@@ -5,19 +5,19 @@ from chartist.cli import _insert_chart
 
 insert_expected = {
     "line": (
-'<img src="http://localhost:8080/line/trainin_loss:[.9,.5,.2,.05,.02,.01]/title:test-title;x_title:test-x-title;style:dark0 alt="test_line" height="600" width="600" >'
-'<img src="http://localhost:8080 alt="test_pie" height="600" width="600" >'
-'<img src="http://localhost:8080 alt="test_xy" height="600" width="600" >'
+'<img src="http://localhost:8080/line/trainin_loss:[.9,.5,.2,.05,.02,.01]/title:test-title;x_title:test-x-title;style:dark0 alt="test_line" height="600" width="600" >\n'
+'<img src="http://localhost:8080 alt="test_pie" height="600" width="600" >\n'
+'<img src="http://localhost:8080 alt="test_xy" height="600" width="600" >\n'
 ),
     "pie": (
-'<img src="http://localhost:8080 alt="test_line" height="600" width="600" >'
-'<img src="http://localhost:8080/pie/trainin_loss:[.9,.5,.2,.05,.02,.01]/title:test-title;x_title:test-x-title;style:dark0 alt="test_pie" height="600" width="600" >'
-'<img src="http://localhost:8080 alt="test_xy" height="600" width="600" >'
+'<img src="http://localhost:8080 alt="test_line" height="600" width="600" >\n'
+'<img src="http://localhost:8080/pie/trainin_loss:[.9,.5,.2,.05,.02,.01]/title:test-title;x_title:test-x-title;style:dark0 alt="test_pie" height="600" width="600" >\n'
+'<img src="http://localhost:8080 alt="test_xy" height="600" width="600" >\n'
 ),
     "xy": (
-'<img src="http://localhost:8080 alt="test_line" height="600" width="600" >'
-'<img src="http://localhost:8080 alt="test_pie" height="600" width="600" >'
-'<img src="http://localhost:8080/xy/trainin_loss:[[1,3,5],[2,4,6]]/title:test-title;x_title:test-x-title;style:dark0 alt="test_xy" height="600" width="600" >'
+'<img src="http://localhost:8080 alt="test_line" height="600" width="600" >\n'
+'<img src="http://localhost:8080 alt="test_pie" height="600" width="600" >\n'
+'<img src="http://localhost:8080/xy/trainin_loss:[[1,3,5],[2,4,6]]/title:test-title;x_title:test-x-title;style:dark0 alt="test_xy" height="600" width="600" >\n'
 ),
 }
 
@@ -72,4 +72,4 @@ def test_insert_chart(params, tmp_path):
     runner = CliRunner()
     result = runner.invoke(_insert_chart, params)
     assert result.exit_code == 0, result.exception
-    assert result.output == insert_expected[chart_type]
+    assert result.output == insert_expected[chart_type], f'\nexpected:\n{insert_expected[chart_type]}\n---\ngot:\n{result.output}'
