@@ -145,14 +145,13 @@ def _add_ranges(file_path,
 
     chart = Chartist.from_text(text, alt_text)
 
-
     chart.add_ranges(data)
     new_text = chart.insert_into_text(text, alt_text)
     if inplace:
         with Path(file_path).open('w') as f:
             f.write(new_text)
     else:
-        print(new_text)
+        print(new_text, end="")
 
 @click.command("append-to-ranges")
 def _append_to_ranges():
@@ -171,7 +170,7 @@ def _append_to_ranges():
         with Path(file_path).open('w') as f:
             f.write(new_text)
     else:
-        print(new_text)
+        print(new_text, end="")
 
 entrypoint.add_command(_insert_chart)
 entrypoint.add_command(_add_ranges)

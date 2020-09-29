@@ -1,8 +1,10 @@
 import pygal
+import re
 from time import time
 from pygal.graph.graph import Graph
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, OrderedDict
 import ruamel.yaml as yaml
+from collections import OrderedDict as ODict
 
 CHART_FROM_NAME_STR = {
     "line" : pygal.Line,
@@ -49,8 +51,9 @@ def get_chart_data_from_parts(parts):
     data_str = parts[1]
     data_yaml = make_valid_yaml(data_str)
 
+    # yaml.round_trip_load perserves order key-value pairs appear
+    # returning an ordered dict
     chart_data = yaml.round_trip_load(data_yaml)
-    #chart_data = yaml.load(data_yaml, Loader=yaml.SafeLoader)
     return chart_data
 
 def get_chart_config_from_parts(parts):
@@ -126,31 +129,40 @@ def _1d_data_to_str(data, prec):
 
 def _nd_data_to_str(data, prec=2):
     """
-    data: {"rangeA": [[x1,y1,z1],[x2,y,z2],...],
+    data: {"rangeA": [[x1,y1,z1],[x2,y2,z2],...],
            "rangeB": ...}
+
     """
     s = []
     for k,v in data.items():
-        v_str = str([list_to_str(point,prec=prec) for point in zip(*v)]).replace(' ','').replace('"','').replace("'",'')
+        v_str = str([list_to_str(point,prec=prec) for point in v]).replace(' ','').replace('"','').replace("'",'')
         s += [f'{k}:{v_str}']
     return ';'.join(s)
 
+def _guess_data_converter(data):
+    _data_types = {type(v) for v in data.values()}
+    if len(_data_types) > 1:
+        raise  ValueError((
+            "Cannot specify data consisting of interables "
+            "AND scalars. Pick one!"))
 
-def _get_data_converter(data):
-    for _,v in data.items():
-        _data = v[0]
-        break
+    return {list: _nd_data_to_str,
+            tuple: _nd_data_to_str}.get(list(_data_types)[0], _1d_data_to_str)
 
-    if isinstance(_data, list) or isinstance(_data, tuple):
-        converter = _nd_data_to_str
-    else:
-        converter = _1d_data_to_str
-    return converter
+#def make_data_str(chart_type, data, prec=2):
+#    converter = _get_data_converter(data)
+#    return converter(data, prec=prec)
 
+#def make_data_str(chart_type, data, prec=2):
+#    s = []
+#    for k,v in data:
+#        if isinstance(v, (list,tuple)):
+#            converter = _nd_data_to_str
+#        else:
+#            converter = _1d_data_to_str
+#        v_str = converter(k,v)
+#        s += [f'{k}:{v_str}']
 
-def make_data_str(chart_type, data, prec=2):
-    converter = _get_data_converter(data)
-    return converter(data, prec=prec)
 
 
 def get_chartist_url_from_text(text, idx, start_token, end_token):
@@ -203,7 +215,7 @@ class Chartist:
     def __init__(
         self,
         chart_type: str,
-        data: Dict[str, List[Any]],
+        data: OrderedDict[str, List[Any]],
         config: Optional[Dict[str, List[Any]]]={},
         endpoint: Optional[str] = 'http://localhost:8080',
         precision: Optional[int] = 2
@@ -215,14 +227,30 @@ class Chartist:
         self.endpoint = endpoint
         self.precision = precision
 
+        self.converter = _guess_data_converter(self.data)
+
         # If True, will append a random query string
         # to the end of urls so the browser is forced
         # to reload the image rather than use the cache.
         self._debug = False
 
-    def add_ranges(self, new_ranges: Dict[str, Any]):
-        for k, v in new_ranges.items():
-            self.data.update({k: v})
+    def add_ranges(self, new_ranges: OrderedDict[str, Any]):
+        def rename_duplicates( old ):
+            seen = {}
+            for x in old:
+                if x in seen:
+                    seen[x] += 1
+                else:
+                    seen[x] = 0
+                yield "{}_{:02}".format(x, seen[x])
+
+        vs = list(self.data.values()) + list(new_ranges.values())
+        ks = list(self.data.keys()) + list(new_ranges.keys())
+        _re = r'_\d{2}$'  # Regex pattern to match 
+        ks_stripped = [re.sub(_re,'',k) for k in ks]
+
+        ks_incremented = list(rename_duplicates(ks_stripped))
+        self.data = ODict([(k,v) for k,v in zip(ks_incremented,vs)])
 
     def append_to_ranges(self, new_data: Dict[str, Any]):
         for k, v in new_data.items():
@@ -238,7 +266,6 @@ class Chartist:
         url = remove_query_string(url)
 
         parts = url.split('/')
-        print(parts)
         chart_endpoint = '/'.join(parts[:3])
         chart_type = get_chart_type_from_parts(parts[3:])
         chart_data = get_chart_data_from_parts(parts[3:])
@@ -253,6 +280,7 @@ class Chartist:
 
     @classmethod
     def from_text(cls, text, alt_text):
+        chartist_url = None
         token = f'![{alt_text}]'
         tag_start = get_idx(text, token)
         if tag_start is not None:
@@ -263,11 +291,14 @@ class Chartist:
         if alt_idx is not None:
             chartist_url = get_chartist_url_from_text(text, alt_idx, '<img', '" ')
 
+        if chartist_url is None:
+            raise KeyError(f"Failed to find alt_text: '{alt_text}' in text.")
+
         return cls.from_url(chartist_url)
 
 
     def to_url(self):
-        data_str = make_data_str(self.chart_type, self.data, prec=self.precision)
+        data_str = self.converter(self.data, prec=self.precision)
         style_str = dict_to_style_str(self.config)
         parts = [self.endpoint, self.chart_type, data_str, style_str]
 
