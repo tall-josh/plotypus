@@ -238,11 +238,15 @@ class Chartist:
         def rename_duplicates( old ):
             seen = {}
             for x in old:
-                if x in seen:
+                if old.count(x) == 1:
+                    range_name = x
+                elif x in seen:
                     seen[x] += 1
+                    range_name = "{}_{:02}".format(x, seen[x])
                 else:
                     seen[x] = 0
-                yield "{}_{:02}".format(x, seen[x])
+                    range_name = "{}_{:02}".format(x, seen[x])
+                yield range_name
 
         vs = list(self.data.values()) + list(new_ranges.values())
         ks = list(self.data.keys()) + list(new_ranges.keys())

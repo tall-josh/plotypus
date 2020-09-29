@@ -54,7 +54,7 @@ def entrypoint():
 "the data from file as well as parsing. For more "
 "information see docs @ http://todo...:-p"
 ))
-@click.option("-f", "--file-path", type=str,
+@click.option("-f", "--file-path", type=click.Path(dir_okay=False),
               required=True,
               help="File to insert Chartist url")
 @click.option("-a", "--alt-text", type=str,
@@ -113,7 +113,7 @@ def _insert_chart(file_path,
         print(new_text, end="")
 
 @click.command("add-ranges")
-@click.option("-f", "--file-path", type=str,
+@click.option("-f", "--file-path", type=click.Path(dir_okay=False),
               required=True,
               help="File to insert Chartist url")
 @click.option("-a", "--alt-text", type=str,
@@ -154,7 +154,30 @@ def _add_ranges(file_path,
         print(new_text, end="")
 
 @click.command("append-to-ranges")
-def _append_to_ranges():
+@click.option("-f", "--file-path", type=click.Path(dir_okay=False),
+              required=True,
+              help="File to insert Chartist url")
+@click.option("-a", "--alt-text", type=str,
+              required=True,
+              help=("The alternate text for image ie:"
+                    "![<THIS BIT!!!>](http://...)"
+                    '<img alt="<THIS BIT!!!>" src="http://..." >')
+              )
+@click.option("-d", "--data-path", type=str,
+              required=True,
+              help="Path to data file")
+@click.option("-fn", "--transform-function", type=str,
+              required=False, default=None,
+              help="Path to data transform function")
+@click.option("-i", "--inplace", is_flag=True,
+              help=("Edit the file at 'file-path' in place. "
+                    "Else print to terminal")
+              )
+def _append_to_ranges(file_path,
+                      alt_text,
+                      data_path,
+                      transform_function,
+                      inplace):
     fn = get_transform_function(transform_function)
     data = fn(data_path)
 

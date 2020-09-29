@@ -8,7 +8,7 @@ import subprocess
 
 import logging as log
 
-from chartist.chartist import Chartist
+from chartist.chart import Chartist
 
 log.basicConfig(level=log.DEBUG)
 
