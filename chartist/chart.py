@@ -234,32 +234,6 @@ class Chartist:
         # to reload the image rather than use the cache.
         self._debug = False
 
-    def add_ranges(self, new_ranges: OrderedDict[str, Any]):
-        def rename_duplicates( old ):
-            seen = {}
-            for x in old:
-                if old.count(x) == 1:
-                    range_name = x
-                elif x in seen:
-                    seen[x] += 1
-                    range_name = "{}_{:02}".format(x, seen[x])
-                else:
-                    seen[x] = 0
-                    range_name = "{}_{:02}".format(x, seen[x])
-                yield range_name
-
-        vs = list(self.data.values()) + list(new_ranges.values())
-        ks = list(self.data.keys()) + list(new_ranges.keys())
-        _re = r'_\d{2}$'  # Regex pattern to match 
-        ks_stripped = [re.sub(_re,'',k) for k in ks]
-
-        ks_incremented = list(rename_duplicates(ks_stripped))
-        self.data = ODict([(k,v) for k,v in zip(ks_incremented,vs)])
-
-    def append_to_ranges(self, new_data: Dict[str, Any]):
-        for k, v in new_data.items():
-            self.data[k] += v
-
     @classmethod
     def from_url(cls, url):
         """Convert chartist formatted url into a Chartis object
@@ -331,9 +305,38 @@ class Chartist:
         url = self.to_url()
         return f'![{alt_text}]({url})'
 
+    def _replace_chart_source(self, text, alt_text, src):
+        token = f'![{alt_text}]'
+        tag_start = get_idx(text, token)
+        if tag_start is not None:
+            src_start = _step_forward_to_token(text, tag_start, '(')
+            src_end = _step_forward_to_token(text, src_start, ')')
+            new_text = ''.join([text[:src_start+1], src, text[src_end:]])
+        else:
+            token = f'alt="{alt_text}"'
+            alt_idx = get_idx(text, token)
+            if alt_idx is not None:
+                tag_start = _step_back_to_token(text, alt_idx, '<img')
+                src_start = _step_forward_to_token(text, tag_start, 'http')
+                src_end = _step_forward_to_token(text, src_start, ' ')
+                new_text = ''.join([text[:src_start], src, text[src_end-1:]])
+
+        return new_text
+
+
+    def _insert_chart_url(self, text, alt_text):
+        url = self.to_url()
+        return self._replace_chart_source(text, alt_text, url)
+
+
+    def _insert_chart_local(self, text, alt_text, local_path):
+        svg = self.to_svg(save_path=local_path)
+        return self._replace_chart_source(text, alt_text, local_path)
+
     def insert_into_text(self,
                          text: str,
-                         alt_text: str):
+                         alt_text: str,
+                         local_path: Optional[str]=None):
         """Inserts Chartist url into text
 
         Finds the Markdown or HTML image tag in the 'text'
@@ -346,26 +349,85 @@ class Chartist:
         are defined are not important. height and width are optional.
         Other attributes are also ok.
         """
-        url = self.to_url()
-        token = f'![{alt_text}]'
-        tag_start = get_idx(text, token)
-        if tag_start is not None:
-            url_start = _step_forward_to_token(text, tag_start, '(')
-            url_end = _step_forward_to_token(text, url_start, ')')
-            text = ''.join([text[:url_start+1], url, text[url_end:]])
+        if local_path is None:
+            new_text = self._insert_chart_url(text, alt_text)
         else:
-            token = f'alt="{alt_text}"'
-            alt_idx = get_idx(text, token)
-            if alt_idx is not None:
-                tag_start = _step_back_to_token(text, alt_idx, '<img')
-                url_start = _step_forward_to_token(text, tag_start, 'http')
-                url_end = _step_forward_to_token(text, url_start, ' ')
-                text = ''.join([text[:url_start], url, text[url_end-1:]])
+            new_text = self._insert_chart_local(text, alt_text, local_path)
 
-        return text
+        return new_text
 
 
-    def to_svg(self):
+
+    def add_ranges(self, new_ranges: OrderedDict[str, Any]):
+        """Adds one or more ranges to an existing Chartist url
+
+        Finds the Markdown or HTML image tag in the 'text'
+        with specified 'alt_text'. Parses it into a Chartist.Chart
+        object. Adds the 'new_ranges'.
+
+        Markdown: ![alt_text](url)
+        HTML:     <img str="url" alt="alt_text" height="###" width="###" >
+        The order with whihc src, alt, height and width
+        are defined are not important. height and width are optional.
+        Other attributes are also ok.
+
+        Use insert_chart to overwrite the existing url in a document.
+
+        **Duplicate Range Names**: If duplicate range names are found
+        this will append '_xx' to the ranges with duplications.
+        Chartist uses the existing url to preserve previous chart
+        state, and OrderedDicts to preserve order, so.
+        For example if an existing chart has data:
+
+            'train:[1,2,3];eval:[4,5,6]'
+
+        and:
+
+            new_ranges={'train': [7,8,9]}
+
+        Then the resulting chart data would be:
+
+            'train_00:[1,2,3];eval:[4,5,6];train_01:[7,8,9]'
+        """
+        def rename_duplicates( old ):
+            seen = {}
+            for x in old:
+                if old.count(x) == 1:
+                    range_name = x
+                elif x in seen:
+                    seen[x] += 1
+                    range_name = "{}_{:02}".format(x, seen[x])
+                else:
+                    seen[x] = 0
+                    range_name = "{}_{:02}".format(x, seen[x])
+                yield range_name
+
+        vs = list(self.data.values()) + list(new_ranges.values())
+        ks = list(self.data.keys()) + list(new_ranges.keys())
+        _re = r'_\d{2}$'  # Regex pattern to match 
+        ks_stripped = [re.sub(_re,'',k) for k in ks]
+
+        ks_incremented = list(rename_duplicates(ks_stripped))
+        self.data = ODict([(k,v) for k,v in zip(ks_incremented,vs)])
+
+    def append_to_ranges(self, new_data: Dict[str, Any]):
+        """Appends data to ranges to an existing Chartist url
+
+        Finds the Markdown or HTML image tag in the 'text'
+        with specified 'alt_text'. Parses it into a Chartist.Chart
+        object. Adds the 'new_ranges'.
+
+        The order with whihc src, alt, height and width
+        are defined are not important. height and width are optional.
+        Other attributes are also ok.
+
+        Use insert_chart to overwrite the existing url in a document.
+        """
+
+        for k, v in new_data.items():
+            self.data[k] += v
+
+    def to_svg(self, save_path:Optional[str]=None):
         cfg = self.config.copy()
         style_str = cfg.get('style', 'default').lower()
         cfg['style'] = STYLE_FROM_NAME_STR[style_str]
@@ -374,5 +436,10 @@ class Chartist:
         chart = chart_constructor(**cfg)
         for k,v in self.data.items():
             chart.add(k, v)
+
+        if save_path:
+            chart.save(save_path)
+            return None
+
         return chart
 
