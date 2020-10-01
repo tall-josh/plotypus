@@ -5,6 +5,7 @@ from pygal.graph.graph import Graph
 from typing import List, Dict, Any, Optional, OrderedDict
 import ruamel.yaml as yaml
 from collections import OrderedDict as ODict
+from pathlib import Path
 
 CHART_FROM_NAME_STR = {
     "line" : pygal.Line,
@@ -329,14 +330,14 @@ class Chartist:
         return self._replace_chart_source(text, alt_text, url)
 
 
-    def _insert_chart_local(self, text, alt_text, local_path):
-        svg = self.to_svg(save_path=local_path)
-        return self._replace_chart_source(text, alt_text, local_path)
+    def _insert_chart_local(self, text, alt_text, save_path):
+        svg = self.to_svg(save_path=save_path)
+        return self._replace_chart_source(text, alt_text, save_path)
 
     def insert_into_text(self,
                          text: str,
                          alt_text: str,
-                         local_path: Optional[str]=None):
+                         save_path: Optional[str]=None):
         """Inserts Chartist url into text
 
         Finds the Markdown or HTML image tag in the 'text'
@@ -349,10 +350,10 @@ class Chartist:
         are defined are not important. height and width are optional.
         Other attributes are also ok.
         """
-        if local_path is None:
+        if save_path is None:
             new_text = self._insert_chart_url(text, alt_text)
         else:
-            new_text = self._insert_chart_local(text, alt_text, local_path)
+            new_text = self._insert_chart_local(text, alt_text, save_path)
 
         return new_text
 
@@ -438,7 +439,8 @@ class Chartist:
             chart.add(k, v)
 
         if save_path:
-            chart.save(save_path)
+            {'.png': chart.render_to_png,
+             '.svg': chart.render_to_file}[Path(save_path).suffix](save_path)
             return None
 
         return chart

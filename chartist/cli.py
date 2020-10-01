@@ -5,6 +5,11 @@ import importlib.machinery
 
 from chartist.chart import Chartist
 
+def validate_save_path(save_path):
+    if (save_path is not None) and \
+            (Path(save_path).suffix not in ('.png', '.svg')):
+        raise ValueError(f"save_path only supports .svg or .png, got: {save_path}")
+
 def load_transform_function(module_path):
     """loads a function named 'fn' given an module path.
 
@@ -82,6 +87,11 @@ def entrypoint():
               help=("Edit the file at 'file-path' in place. "
                     "Else print to terminal")
               )
+@click.option("-s", "--save-path", type=click.Path(dir_okay=False),
+              required=False, default=None,
+              help=("Save .svg or .png to disk instead of relying on "
+                    "server to provide graphics")
+              )
 def _insert_chart(file_path,
                   alt_text,
                   chart_type,
@@ -90,7 +100,10 @@ def _insert_chart(file_path,
                   endpoint,
                   transform_function,
                   inplace,
+                  save_path,
                   ):
+    validate_save_path(save_path)
+
     fn = get_transform_function(transform_function)
     data = fn(data_path)
     config = get_config(config_path)
@@ -105,7 +118,7 @@ def _insert_chart(file_path,
     with Path(file_path).open('r') as f:
         text = f.read()
 
-    new_text = chart.insert_into_text(text, alt_text)
+    new_text = chart.insert_into_text(text, alt_text, save_path=save_path)
     if inplace:
         with Path(file_path).open('w') as f:
             f.write(new_text)
