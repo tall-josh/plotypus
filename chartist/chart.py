@@ -1,8 +1,11 @@
 import pygal
+import re
 from time import time
 from pygal.graph.graph import Graph
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, OrderedDict
 import ruamel.yaml as yaml
+from collections import OrderedDict as ODict
+from pathlib import Path
 
 CHART_FROM_NAME_STR = {
     "line" : pygal.Line,
@@ -49,8 +52,9 @@ def get_chart_data_from_parts(parts):
     data_str = parts[1]
     data_yaml = make_valid_yaml(data_str)
 
+    # yaml.round_trip_load perserves order key-value pairs appear
+    # returning an ordered dict
     chart_data = yaml.round_trip_load(data_yaml)
-    #chart_data = yaml.load(data_yaml, Loader=yaml.SafeLoader)
     return chart_data
 
 def get_chart_config_from_parts(parts):
@@ -58,7 +62,6 @@ def get_chart_config_from_parts(parts):
        chart_config_str = parts[2]
        chart_config_yaml = make_valid_yaml(chart_config_str)
        chart_config = yaml.round_trip_load(chart_config_yaml)
-       #chart_config = yaml.load(chart_config_yaml, Loader=yaml.SafeLoader)
    else:
        chart_config = {}
    return chart_config
@@ -85,20 +88,6 @@ def remove_underscore(config):
     return config
 
 
-#def chart_dict_from_chartist_url(text):
-#    if text.endswith('/'):
-#        text = text[:-1]
-#
-#    parts = text.split('/')[3:]
-#    chart_type = get_chart_type_from_parts(parts)
-#    chart_data = get_chart_data_from_parts(parts)
-#    chart_config = get_chart_config_from_parts(parts)
-#
-#    chart_config = remove_underscore(chart_config)
-#
-#    return {"chart_type": chart_type,
-#                  "data": chart_data,
-#                  "chart_config": chart_config}
 def clip_if_float(x, prec):
     """Converts numbers to string
     To save on chars:
@@ -139,25 +128,42 @@ def _1d_data_to_str(data, prec):
         s += [f'{k}:{v_str}']
     return ';'.join(s)
 
-def _2d_data_to_str(data, prec=2):
+def _nd_data_to_str(data, prec=2):
     """
-    data: {"rangeA": [[x1,x2,x3],[y1,y2,y3]],
+    data: {"rangeA": [[x1,y1,z1],[x2,y2,z2],...],
            "rangeB": ...}
+
     """
     s = []
     for k,v in data.items():
-        v_str = str([list_to_str(point,prec=prec) for point in zip(*v)]).replace(' ','').replace('"','').replace("'",'')
+        v_str = str([list_to_str(point,prec=prec) for point in v]).replace(' ','').replace('"','').replace("'",'')
         s += [f'{k}:{v_str}']
     return ';'.join(s)
 
-_data_to_string_converters = {
-    "xy": _2d_data_to_str,
-    "line": _1d_data_to_str,
-    "dot": _1d_data_to_str,
-}
+def _guess_data_converter(data):
+    _data_types = {type(v) for v in data.values()}
+    if len(_data_types) > 1:
+        raise  ValueError((
+            "Cannot specify data consisting of interables "
+            "AND scalars. Pick one!"))
 
-def make_data_str(chart_type, data, prec=2):
-    return _data_to_string_converters[chart_type](data, prec=prec)
+    return {list: _nd_data_to_str,
+            tuple: _nd_data_to_str}.get(list(_data_types)[0], _1d_data_to_str)
+
+#def make_data_str(chart_type, data, prec=2):
+#    converter = _get_data_converter(data)
+#    return converter(data, prec=prec)
+
+#def make_data_str(chart_type, data, prec=2):
+#    s = []
+#    for k,v in data:
+#        if isinstance(v, (list,tuple)):
+#            converter = _nd_data_to_str
+#        else:
+#            converter = _1d_data_to_str
+#        v_str = converter(k,v)
+#        s += [f'{k}:{v_str}']
+
 
 
 def get_chartist_url_from_text(text, idx, start_token, end_token):
@@ -210,8 +216,8 @@ class Chartist:
     def __init__(
         self,
         chart_type: str,
-        data: Dict[str, List[Any]],
-        config: Dict[str, List[Any]],
+        data: OrderedDict[str, List[Any]],
+        config: Optional[Dict[str, List[Any]]]={},
         endpoint: Optional[str] = 'http://localhost:8080',
         precision: Optional[int] = 2
     ):
@@ -222,13 +228,12 @@ class Chartist:
         self.endpoint = endpoint
         self.precision = precision
 
-    def add_ranges(self, new_ranges: Dict[str, Any]):
-        for k, v in new_ranges.items():
-            self.data.update({k: v})
+        self.converter = _guess_data_converter(self.data)
 
-    def append_to_ranges(self, new_data: Dict[str, Any]):
-        for k, v in new_data.items():
-            self.data[k] += v
+        # If True, will append a random query string
+        # to the end of urls so the browser is forced
+        # to reload the image rather than use the cache.
+        self._debug = False
 
     @classmethod
     def from_url(cls, url):
@@ -240,7 +245,6 @@ class Chartist:
         url = remove_query_string(url)
 
         parts = url.split('/')
-        print(parts)
         chart_endpoint = '/'.join(parts[:3])
         chart_type = get_chart_type_from_parts(parts[3:])
         chart_data = get_chart_data_from_parts(parts[3:])
@@ -255,6 +259,7 @@ class Chartist:
 
     @classmethod
     def from_text(cls, text, alt_text):
+        chartist_url = None
         token = f'![{alt_text}]'
         tag_start = get_idx(text, token)
         if tag_start is not None:
@@ -265,15 +270,18 @@ class Chartist:
         if alt_idx is not None:
             chartist_url = get_chartist_url_from_text(text, alt_idx, '<img', '" ')
 
+        if chartist_url is None:
+            raise KeyError(f"Failed to find alt_text: '{alt_text}' in text.")
+
         return cls.from_url(chartist_url)
 
 
-    def to_url(self, rand_query_str: Optional[bool]=False):
-        data_str = make_data_str(self.chart_type, self.data, prec=self.precision)
+    def to_url(self):
+        data_str = self.converter(self.data, prec=self.precision)
         style_str = dict_to_style_str(self.config)
         parts = [self.endpoint, self.chart_type, data_str, style_str]
 
-        if rand_query_str:
+        if self._debug:
             s = parts[-1]
             parts[-1] = f"{s}?{int(time())}"
 
@@ -283,7 +291,7 @@ class Chartist:
         return url
 
     def to_html_tag(self, alt_text: str, height: Optional[int]=None, width: Optional[int]=None) -> str:
-        url = self.to_url(rand_query_str=True)
+        url = self.to_url()
         parts = [f'<img src="{url}" alt="{alt_text}"']
         if height is not None:
             parts += [f'height="{height}"']
@@ -295,12 +303,41 @@ class Chartist:
         return ' '.join(parts)
 
     def to_markdown_tag(self, alt_text: str) -> str:
-        url = self.to_url(rand_query_str=True)
+        url = self.to_url()
         return f'![{alt_text}]({url})'
+
+    def _replace_chart_source(self, text, alt_text, src):
+        token = f'![{alt_text}]'
+        tag_start = get_idx(text, token)
+        if tag_start is not None:
+            src_start = _step_forward_to_token(text, tag_start, '(')
+            src_end = _step_forward_to_token(text, src_start, ')')
+            new_text = ''.join([text[:src_start+1], src, text[src_end:]])
+        else:
+            token = f'alt="{alt_text}"'
+            alt_idx = get_idx(text, token)
+            if alt_idx is not None:
+                tag_start = _step_back_to_token(text, alt_idx, '<img')
+                src_start = _step_forward_to_token(text, tag_start, 'http')
+                src_end = _step_forward_to_token(text, src_start, ' ')
+                new_text = ''.join([text[:src_start], src, text[src_end-1:]])
+
+        return new_text
+
+
+    def _insert_chart_url(self, text, alt_text):
+        url = self.to_url()
+        return self._replace_chart_source(text, alt_text, url)
+
+
+    def _insert_chart_local(self, text, alt_text, save_path):
+        svg = self.to_svg(save_path=save_path)
+        return self._replace_chart_source(text, alt_text, save_path)
 
     def insert_into_text(self,
                          text: str,
-                         alt_text: str):
+                         alt_text: str,
+                         save_path: Optional[str]=None):
         """Inserts Chartist url into text
 
         Finds the Markdown or HTML image tag in the 'text'
@@ -313,26 +350,85 @@ class Chartist:
         are defined are not important. height and width are optional.
         Other attributes are also ok.
         """
-        url = self.to_url(rand_query_str=True)
-        token = f'![{alt_text}]'
-        tag_start = get_idx(text, token)
-        if tag_start is not None:
-            url_start = _step_forward_to_token(text, tag_start, '(')
-            url_end = _step_forward_to_token(text, url_start, ')')
-            text = ''.join([text[:url_start+1], url, text[url_end:]])
+        if save_path is None:
+            new_text = self._insert_chart_url(text, alt_text)
         else:
-            token = f'alt="{alt_text}"'
-            alt_idx = get_idx(text, token)
-            if alt_idx is not None:
-                tag_start = _step_back_to_token(text, alt_idx, '<img')
-                url_start = _step_forward_to_token(text, tag_start, 'http')
-                url_end = _step_forward_to_token(text, url_start, ' ')
-                text = ''.join([text[:url_start], url, text[url_end-1:]])
+            new_text = self._insert_chart_local(text, alt_text, save_path)
 
-        return text
+        return new_text
 
 
-    def to_svg(self):
+
+    def add_ranges(self, new_ranges: OrderedDict[str, Any]):
+        """Adds one or more ranges to an existing Chartist url
+
+        Finds the Markdown or HTML image tag in the 'text'
+        with specified 'alt_text'. Parses it into a Chartist.Chart
+        object. Adds the 'new_ranges'.
+
+        Markdown: ![alt_text](url)
+        HTML:     <img str="url" alt="alt_text" height="###" width="###" >
+        The order with whihc src, alt, height and width
+        are defined are not important. height and width are optional.
+        Other attributes are also ok.
+
+        Use insert_chart to overwrite the existing url in a document.
+
+        **Duplicate Range Names**: If duplicate range names are found
+        this will append '_xx' to the ranges with duplications.
+        Chartist uses the existing url to preserve previous chart
+        state, and OrderedDicts to preserve order, so.
+        For example if an existing chart has data:
+
+            'train:[1,2,3];eval:[4,5,6]'
+
+        and:
+
+            new_ranges={'train': [7,8,9]}
+
+        Then the resulting chart data would be:
+
+            'train_00:[1,2,3];eval:[4,5,6];train_01:[7,8,9]'
+        """
+        def rename_duplicates( old ):
+            seen = {}
+            for x in old:
+                if old.count(x) == 1:
+                    range_name = x
+                elif x in seen:
+                    seen[x] += 1
+                    range_name = "{}_{:02}".format(x, seen[x])
+                else:
+                    seen[x] = 0
+                    range_name = "{}_{:02}".format(x, seen[x])
+                yield range_name
+
+        vs = list(self.data.values()) + list(new_ranges.values())
+        ks = list(self.data.keys()) + list(new_ranges.keys())
+        _re = r'_\d{2}$'  # Regex pattern to match 
+        ks_stripped = [re.sub(_re,'',k) for k in ks]
+
+        ks_incremented = list(rename_duplicates(ks_stripped))
+        self.data = ODict([(k,v) for k,v in zip(ks_incremented,vs)])
+
+    def append_to_ranges(self, new_data: Dict[str, Any]):
+        """Appends data to ranges to an existing Chartist url
+
+        Finds the Markdown or HTML image tag in the 'text'
+        with specified 'alt_text'. Parses it into a Chartist.Chart
+        object. Adds the 'new_ranges'.
+
+        The order with whihc src, alt, height and width
+        are defined are not important. height and width are optional.
+        Other attributes are also ok.
+
+        Use insert_chart to overwrite the existing url in a document.
+        """
+
+        for k, v in new_data.items():
+            self.data[k] += v
+
+    def to_svg(self, save_path:Optional[str]=None):
         cfg = self.config.copy()
         style_str = cfg.get('style', 'default').lower()
         cfg['style'] = STYLE_FROM_NAME_STR[style_str]
@@ -341,5 +437,11 @@ class Chartist:
         chart = chart_constructor(**cfg)
         for k,v in self.data.items():
             chart.add(k, v)
+
+        if save_path:
+            {'.png': chart.render_to_png,
+             '.svg': chart.render_to_file}[Path(save_path).suffix](save_path)
+            return None
+
         return chart
 

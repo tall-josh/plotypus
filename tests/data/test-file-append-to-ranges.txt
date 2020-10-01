@@ -1,0 +1,2 @@
+<img src="http://localhost:8080/line/eval_loss:[0,1];training_loss:[.9,.5,.2,.05,.02,.01]/title:test-title;x_title:test-x-title;style:dark" alt="test_line" height="600" width="600" >
+<img src="http://localhost:8080/xy/eval_loss:[[0,0],[1,1]];training_loss:[[1,1],[2,2],[3,3],[4,4]]/title:test-title;x_title:test-x-title;style:dark" alt="test_xy" height="600" width="600" >
