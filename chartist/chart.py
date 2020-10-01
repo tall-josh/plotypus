@@ -41,6 +41,14 @@ CHART_TYPE = 'chart_type'
 DATA = 'data'
 
 
+def load_config(config_path):
+    if config_path is None:
+        config = {}
+    else:
+        with Path(config_path).open('r') as f:
+            config = yaml.round_trip_load(f)
+    return config
+
 def make_valid_yaml(d):
     d = d.replace(';','\n').replace(':', ': ')
     return d
@@ -234,6 +242,29 @@ class Chartist:
         # to the end of urls so the browser is forced
         # to reload the image rather than use the cache.
         self._debug = False
+
+
+    @classmethod
+    def from_data_file(cls,
+                       chart_type: str,
+                       data_path: str,
+                       load_fn,
+                       config_path: str=None,
+                       endpoint: str='http://localhost:8080',
+                       precision: int=2
+                      ):
+        data = load_fn(data_path)
+        if config_path is not None:
+            config = load_config(config_path)
+        else:
+            config = None
+
+        return cls(chart_type,
+                   data,
+                   config=config,
+                   endpoint=endpoint,
+                   precision=precision)
+
 
     @classmethod
     def from_url(cls, url):

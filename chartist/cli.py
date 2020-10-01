@@ -3,7 +3,7 @@ import ruamel.yaml as yaml
 from pathlib import Path
 import importlib.machinery
 
-from chartist.chart import Chartist
+from chartist.chart import Chartist, load_config
 
 def validate_save_path(save_path):
     if (save_path is not None) and \
@@ -32,14 +32,6 @@ def get_transform_function(transform_function):
         fn = load_transform_function(transform_function)
 
     return fn
-
-def get_config(config_path):
-    if config_path is None:
-        config = {}
-    else:
-        with Path(config_path).open('r') as f:
-            config = yaml.round_trip_load(f)
-    return config
 
 @click.group()
 def entrypoint():
@@ -106,7 +98,7 @@ def _insert_chart(file_path,
 
     fn = get_transform_function(transform_function)
     data = fn(data_path)
-    config = get_config(config_path)
+    config = load_config(config_path)
 
     chart = Chartist(
         chart_type,
