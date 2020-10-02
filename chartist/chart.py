@@ -2,10 +2,11 @@ import pygal
 import re
 from time import time
 from pygal.graph.graph import Graph
-from typing import List, Dict, Any, Optional, OrderedDict
+from typing import List, Dict, Any, Optional
 import ruamel.yaml as yaml
-from collections import OrderedDict as ODict
+from collections import OrderedDict
 from pathlib import Path
+
 
 CHART_FROM_NAME_STR = {
     "line" : pygal.Line,
@@ -224,7 +225,7 @@ class Chartist:
     def __init__(
         self,
         chart_type: str,
-        data: OrderedDict[str, List[Any]],
+        data: OrderedDict,
         config: Optional[Dict[str, List[Any]]]={},
         endpoint: Optional[str] = 'http://localhost:8080',
         precision: Optional[int] = 2
@@ -390,7 +391,7 @@ class Chartist:
 
 
 
-    def add_ranges(self, new_ranges: OrderedDict[str, Any]):
+    def add_ranges(self, new_ranges: OrderedDict):
         """Adds one or more ranges to an existing Chartist url
 
         Finds the Markdown or HTML image tag in the 'text'
@@ -440,7 +441,7 @@ class Chartist:
         ks_stripped = [re.sub(_re,'',k) for k in ks]
 
         ks_incremented = list(rename_duplicates(ks_stripped))
-        self.data = ODict([(k,v) for k,v in zip(ks_incremented,vs)])
+        self.data = OrderedDict([(k,v) for k,v in zip(ks_incremented,vs)])
 
     def append_to_ranges(self, new_data: Dict[str, Any]):
         """Appends data to ranges to an existing Chartist url
