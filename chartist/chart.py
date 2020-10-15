@@ -125,55 +125,21 @@ def dict_to_style_str(chart_config):
         s += [f'{k}:{v}']
     return ';'.join(s).replace(' ','').replace('"','').replace("'",'')
 
-def _1d_data_to_str(data, prec):
-    """
-    data: {"rangeA": [y1,y2,...],
-           "rangeB": ...
-           }
-    """
+def data_to_str(data, prec):
+    if not isinstance(data, list):
+        data = [data]
+    if isinstance(data, list) and isinstance(data[0], list):
+        return [data_to_str(d, prec) for d in data]
+    else:
+        return list_to_str(data)
+
+
+def stringify(data, prec=2):
     s = []
-    for k,v in data.items():
-        v_str = list_to_str(v, prec=prec)
-        s += [f'{k}:{v_str}']
-    return ';'.join(s)
-
-def _nd_data_to_str(data, prec=2):
-    """
-    data: {"rangeA": [[x1,y1,z1],[x2,y2,z2],...],
-           "rangeB": ...}
-
-    """
-    s = []
-    for k,v in data.items():
-        v_str = str([list_to_str(point,prec=prec) for point in v]).replace(' ','').replace('"','').replace("'",'')
-        s += [f'{k}:{v_str}']
-    return ';'.join(s)
-
-def _guess_data_converter(data):
-    _data_types = {type(v) for v in data.values()}
-    if len(_data_types) > 1:
-        raise  ValueError((
-            "Cannot specify data consisting of interables "
-            "AND scalars. Pick one!"))
-
-    return {list: _nd_data_to_str,
-            tuple: _nd_data_to_str}.get(list(_data_types)[0], _1d_data_to_str)
-
-#def make_data_str(chart_type, data, prec=2):
-#    converter = _get_data_converter(data)
-#    return converter(data, prec=prec)
-
-#def make_data_str(chart_type, data, prec=2):
-#    s = []
-#    for k,v in data:
-#        if isinstance(v, (list,tuple)):
-#            converter = _nd_data_to_str
-#        else:
-#            converter = _1d_data_to_str
-#        v_str = converter(k,v)
-#        s += [f'{k}:{v_str}']
-
-
+    for key, val in data.items():
+        data_str = str(data_to_str(val, prec)).replace(' ','').replace('"','').replace("'",'')
+        s += [f"{key}:{data_str}"]
+    return ";".join(s)
 
 def get_chartist_url_from_text(text, idx, start_token, end_token):
     """
@@ -237,8 +203,6 @@ class Chartist:
         self.endpoint = endpoint
         self.precision = precision
 
-        self.converter = _guess_data_converter(self.data)
-
         # If True, will append a random query string
         # to the end of urls so the browser is forced
         # to reload the image rather than use the cache.
@@ -268,7 +232,7 @@ class Chartist:
 
 
     @classmethod
-    def from_url(cls, url):
+    def from_url(cls, url, create_if_blank=True):
         """Convert chartist formatted url into a Chartis object
         """
         if url.endswith('/'):
@@ -277,11 +241,18 @@ class Chartist:
         url = remove_query_string(url)
 
         parts = url.split('/')
+
+
         chart_endpoint = '/'.join(parts[:3])
         chart_type = get_chart_type_from_parts(parts[3:])
-        chart_data = get_chart_data_from_parts(parts[3:])
-        chart_config = get_chart_config_from_parts(parts[3:])
-        chart_config = remove_underscore(chart_config)
+
+        if len(parts) == 4 and create_if_blank:
+            chart_data = {}
+            chart_config = {}
+        else:
+            chart_data = get_chart_data_from_parts(parts[3:])
+            chart_config = get_chart_config_from_parts(parts[3:])
+            chart_config = remove_underscore(chart_config)
 
         return cls(
             chart_type,
@@ -290,12 +261,12 @@ class Chartist:
             endpoint=chart_endpoint)
 
     @classmethod
-    def from_text(cls, text, alt_text):
+    def from_text(cls, text, alt_text, create_if_blank=True):
         chartist_url = None
         token = f'![{alt_text}]'
         tag_start = get_idx(text, token)
         if tag_start is not None:
-            chartist_url = get_chartist_url_from_line(line, tag_start, token, ')')
+            chartist_url = get_chartist_url_from_text(line, tag_start, token, ')')
 
         token = f'alt="{alt_text}"'
         alt_idx = get_idx(text, token)
@@ -305,11 +276,13 @@ class Chartist:
         if chartist_url is None:
             raise KeyError(f"Failed to find alt_text: '{alt_text}' in text.")
 
-        return cls.from_url(chartist_url)
+        return cls.from_url(
+            chartist_url,
+            create_if_blank=create_if_blank)
 
 
     def to_url(self):
-        data_str = self.converter(self.data, prec=self.precision)
+        data_str = stringify(self.data, prec=self.precision)
         style_str = dict_to_style_str(self.config)
         parts = [self.endpoint, self.chart_type, data_str, style_str]
 
@@ -458,7 +431,10 @@ class Chartist:
         """
 
         for k, v in new_data.items():
-            self.data[k] += v
+            if k in self.data:
+                self.data[k] += [v]
+            else:
+                self.data[k] = [v]
 
     def to_svg(self, save_path:Optional[str]=None):
         cfg = self.config.copy()
