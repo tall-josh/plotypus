@@ -1,0 +1,23 @@
+#!/bin/bash
+files=`git diff --cached --name-status`
+
+output=`python .git/hooks/chartist-pre-commit.py $files`
+IFS=' ' read -r -a arr <<< "$output"
+error_code=${arr[0]}
+
+if [ $error_code == "0" ]
+then
+    updated=${arr[@]:1}
+    for U in ${updated}
+    do
+      echo "Chartist Updated: $U"
+    done
+    git add $updated
+    exit 0
+else
+    error_message=${arr[@]:1}
+    echo Chartist Error:
+    ( IFS=$'\n'; echo "${error_message}" )
+    exit 1
+fi
+
