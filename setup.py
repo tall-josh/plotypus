@@ -6,7 +6,7 @@ long_desc="fdsfds"
 
 install_requires = [
     'cairocffi==1.1.0',
-    'CairoSVG==2.4.2',
+    'CairoSVG==2.5.1',
     'cffi==1.14.0',
     'click==7.1.2',
     'cssselect==1.1.0',
