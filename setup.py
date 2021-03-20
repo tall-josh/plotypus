@@ -14,7 +14,7 @@ install_requires = [
     'defusedxml==0.6.0',
     'Flask==1.1.2',
     'itsdangerous==1.1.0',
-    'Jinja2==2.11.2',
+    'Jinja2==2.11.3',
     'lxml==4.5.0',
     'MarkupSafe==1.1.1',
     'Pillow==7.1.2',
