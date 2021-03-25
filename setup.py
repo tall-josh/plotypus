@@ -20,7 +20,7 @@ install_requires = [
     'Pillow==7.1.2',
     'pycparser==2.20',
     'pygal==2.4.0',
-    'PyYAML==5.3.1',
+    'PyYAML==5.4',
     'tinycss==0.4',
     'tinycss2==1.0.2',
     'urllib3==1.25.9',
