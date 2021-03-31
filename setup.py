@@ -15,7 +15,7 @@ install_requires = [
     'Flask==1.1.2',
     'itsdangerous==1.1.0',
     'Jinja2==2.11.2',
-    'lxml==4.5.0',
+    'lxml==4.6.3',
     'MarkupSafe==1.1.1',
     'Pillow==7.1.2',
     'pycparser==2.20',
