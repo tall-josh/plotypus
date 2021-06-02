@@ -23,7 +23,7 @@ install_requires = [
     'PyYAML==5.3.1',
     'tinycss==0.4',
     'tinycss2==1.0.2',
-    'urllib3==1.25.9',
+    'urllib3==1.26.5',
     'webencodings==0.5.1',
     'Werkzeug==1.0.1',
     'gunicorn==20.0.4',
