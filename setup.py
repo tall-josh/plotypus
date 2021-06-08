@@ -17,7 +17,7 @@ install_requires = [
     'Jinja2==2.11.2',
     'lxml==4.5.0',
     'MarkupSafe==1.1.1',
-    'Pillow==7.1.2',
+    'Pillow==8.2.0',
     'pycparser==2.20',
     'pygal==2.4.0',
     'PyYAML==5.3.1',
